@@ -1,0 +1,37 @@
+version: "3.9" # Docker Compose specification version
+services:
+    mongo:
+        image: mongo:7                        # Use official MongoDB v7 image
+        container_name: labassets-mongo.      # Give container a fixed name
+        restart: unless-stopped               # Restart if it crashes (but not if stopped manually)
+        environment:                          
+            MONGO_INITDB_DATABASE: labassets  # Create "labassets" DB on first startup
+        volumes:
+            - mongo_data:/data/db             # Persist DB data on host using a named volume
+        ports:
+            - "27017:27017"                   # Map host port 27017 -> container port 27017
+    
+    server:
+        build:
+            context: ./server                 # Build Dockerfile from ./server folder
+        environment:
+            MONGODB_URI: mongodb://mongo:27017/labassets # Connection string (mongo = service name)
+            PORT: 4000                        # Backend listens on port 4000
+            CORS_ORIGIN: "*"                  # Allow frontend requests from any origin
+        ports:
+            - "4000:4000"                     # Map host port 4000 -> container port 4000  
+        depends_on:
+            - mongo                           # Ensure MongoDB starts before backend
+    
+    client:
+        build:
+            context: ./client                 # Build Dockerfile from ./client folder
+            args:
+                VITE_API_URL: http://localhost:4000/api # Inject API URL into frontend build
+        ports:
+            - "5173:80"                       # Map host port 5173 -> container port 80 (Nginx)
+        depends_on:
+            - server                          # Ensure backend starts before frontend
+
+volumes:
+    mongo_data:                               # Named volume for MongoDB persistent storage
