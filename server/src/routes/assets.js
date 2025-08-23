@@ -4,6 +4,9 @@ import Asset from '../models/Asset.js'
 const router = express.Router(); 
 
 // GET /api/assets?q=&page,&limit=
+// page: which “page” of results you want
+// limit: how many items per page you want
+// skip: how many items to jump over to reach that slice
 router.get('/', async (req, res, next) => {
     try {
         const { q = '', page = 1, limit = 10 } = req.query;
@@ -26,7 +29,7 @@ router.get('/:id', async (req, res, next) => {
     try {
         const item = await Asset.findById(req.params.id);
         if (!item) return res.status(404).json({ message: 'Asset not found'});
-        res.json(item); // use return, when want to stop further code execution
+        res.status(200).json(item); // use return, when want to stop further code execution
     } catch (err) {
         next(err);
     }

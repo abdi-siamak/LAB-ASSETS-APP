@@ -4,7 +4,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import connectDB from './db.js';
 import { notFound, errorHandler } from './middleware/error.js';
-import assetRoutes from './routes/assets.js';
+import assetRoutes from './routes/assets.js'; // API route handler
 
 dotenv.config();
 
