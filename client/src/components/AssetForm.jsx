@@ -12,7 +12,7 @@ export default function AssetForm({ initial=null, onSubmit, submitting }) {
     useEffect(() => {
         // code runs after render
         if (initial) setForm(prev => ({ ...prev, ...initial })) //form gets pre-filled
-    }), [initial] //tells React when to re-run it.
+    }, [initial]); //tells React when to re-run it.
 
     function handleChange(e) { // e: event object passed to the handler whenever the user types in an input or textarea.
         const { name, value } = e.target; // e.target: is the element that triggered the event (the specific input).
@@ -20,7 +20,7 @@ export default function AssetForm({ initial=null, onSubmit, submitting }) {
     }
 
     function handleSubmit(e) {
-        e.preventDefault;
+        e.preventDefault();
         onSubmit(form);
     }
 

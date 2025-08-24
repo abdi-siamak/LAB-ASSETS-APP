@@ -8,7 +8,7 @@ export default function NewAsset() {
     const [submitting, setSubmitting] = useState(false);
 
     async function handleSubmit(form) {
-        setSubmitting(false);
+        setSubmitting(true);
         try {
             await createAsset(form);
             nav('/');
