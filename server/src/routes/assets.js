@@ -38,6 +38,11 @@ router.get('/:id', async (req, res, next) => {
 // POST /api/assets
 router.post('/', async (req, res, next) => {
     try {
+        const {name, type, location, status} = req.body;
+        const duplicate = await Asset.findOne({name, type, location, status});
+        if (duplicate) {
+            return res.status(409).json({ message: 'Record already exists.' });
+        }
         const asset = new Asset(req.body);
         const saved = await asset.save();
         res.status(201).json(saved);
@@ -47,8 +52,13 @@ router.post('/', async (req, res, next) => {
 })
 
 // PATCH /api/assets/:id
-router.patch('/:id', async (req, res, next) => {
+router.patch('/:id', async (req, res, next) => { // PUT: full update – PATCH: partial update
     try {
+        const {name, type, location, status} = req.body;
+        const duplicate = await Asset.findOne({name, type, location, status});
+        if (duplicate) {
+            return res.status(409).json({ message: 'Record already exists.' });
+        }
         const updated = await Asset.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true}); //new: true → Returns the updated document instead of the old one|runValidators: true → Ensures the update respects the schema’s validators.
         if (!updated) return res.status(404).json({ message: 'Asset not found' });
             res.json({ ok: true});

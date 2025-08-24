@@ -1,15 +1,15 @@
 const API = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export async function listAssets({q = '', page=1, limit=10} = {}) {
-    const r = await fetch(`${API}/assets?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`);//q=${encodeURIComponent(q)} → encodes the search query safely for URLs
-    if (!r.ok) throw new Error('Failed to fetch assets');
-    return r.json()
+  const r = await fetch(`${API}/assets?q=${encodeURIComponent(q)}&page=${page}&limit=${limit}`);//q=${encodeURIComponent(q)} → encodes the search query safely for URLs
+  if (!r.ok) throw new Error('Failed to fetch assets');
+  return r.json()
 }
 
 export async function getAsset(id) {
-    const r = await fetch(`${API}/assets/${id}`);
-    if (!r) throw new Error('Asset not found');
-    return r.json();
+  const r = await fetch(`${API}/assets/${id}`);
+  if (!r) throw new Error('Asset not found');
+  return r.json();
 }
 
 export async function createAsset(data) {
@@ -18,7 +18,13 @@ export async function createAsset(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  if (!r.ok) throw new Error('Create failed');
+  if (!r.ok){
+    if (r.status == 409) {
+      throw new Error('Duplicate record');
+    } else {
+      throw new Error('Create failed');
+    }
+  }
   return r.json();
 }
 
@@ -28,7 +34,13 @@ export async function updateAsset(id, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  if (!r.ok) throw new Error('Update failed');
+  if (!r.ok){
+    if (r.status == 409) {
+      throw new Error('Duplicate record');
+    } else {
+      throw new Error('Update failed');
+    }
+  }
   return r.json();
 }
 

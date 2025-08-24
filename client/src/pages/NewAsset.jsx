@@ -11,7 +11,10 @@ export default function NewAsset() {
         setSubmitting(true);
         try {
             await createAsset(form);
+            alert('Asset added successfully!');
             nav('/');
+        } catch (err) {
+            alert(`Error: ${err.message}`);
         } finally {
             setSubmitting(false);
         }

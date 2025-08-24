@@ -17,7 +17,10 @@ export default function EditAsset() {
         setSubmitting(true);
         try {
             await updateAsset(id, form);
+            alert('Asset updated successfully!');
             nav('/')
+        } catch (err) {
+            alert(`Error: ${err.message}`);
         } finally {
             setSubmitting(false);
         }
@@ -28,7 +31,7 @@ export default function EditAsset() {
     return (
         <> 
           <h2>Edit Asset</h2>
-          <AssetForm initial={initial} onSubmit={handleSubmit} sunmitting={submitting} />
+          <AssetForm initial={initial} onSubmit={handleSubmit} submitting={submitting} />
         </>
     );
 }
