@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { listAssets, deleteAsset } from '../api';
+import { listAssets, deleteAsset } from '../api.js';
 import { Link } from "react-router-dom";
 
 export default function AssetsList() {

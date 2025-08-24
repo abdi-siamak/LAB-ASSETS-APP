@@ -1,0 +1,29 @@
+# dependencies & caches
+node_modules
+npm-debug.log*
+pnpm-lock.yaml
+
+# local env (bake API URL via build-args, not .env files)
+.env
+.env.*
+
+# VCS & editor junk
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# output / caches from local runs
+dist
+build
+.cache
+
+# Docker files not needed in context
+Dockerfile
+.dockerignore
+
+# Tests
+tests
+**/*.test.*
+**/__tests__/**

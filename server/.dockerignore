@@ -1,0 +1,34 @@
+# dependencies & caches
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# local env & secrets (pass via env vars in compose/Actions)
+.env
+.env.*
+
+# VCS & editor junk
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# build artifacts / coverage / logs / temp
+coverage
+logs
+*.log
+tmp
+dist
+build
+
+# Docker files don't need to be in the context
+Dockerfile
+.dockerignore
+
+# Tests 
+tests
+**/*.test.*
+**/__tests__/**

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getAsset,  updateAsset} from '../api';
+import { getAsset,  updateAsset} from '../api.js';
 import { useNavigate, useParams } from 'react-router-dom';
-import AssetForm from '../components/AssetForm';
+import AssetForm from '../components/AssetForm.jsx';
 
 export default function EditAsset() {
     const { id } = useParams();

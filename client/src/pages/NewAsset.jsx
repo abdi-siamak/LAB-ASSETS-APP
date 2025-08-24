@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { createAsset } from '../api';
+import { createAsset } from '../api.js';
 import { useNavigate } from 'react-router-dom';
-import AssetForm from '../components/AssetForm';
+import AssetForm from '../components/AssetForm.jsx';
 
 export default function NewAsset() {
     const nav = useNavigate();//A React Router hook that gives a function to programmatically navigate between routes in your app.

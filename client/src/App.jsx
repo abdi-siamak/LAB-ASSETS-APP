@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import AssetsList from './pages/AssetsList';
-import NewAsset from './pages/NewAsset';
-import EditAsset from './pages/EditAsset';
+import AssetsList from './pages/AssetsList.jsx';
+import NewAsset from './pages/NewAsset.jsx';
+import EditAsset from './pages/EditAsset.jsx';
 
 export default function App() {
   return (
