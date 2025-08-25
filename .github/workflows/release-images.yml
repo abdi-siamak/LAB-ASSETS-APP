@@ -32,8 +32,8 @@ jobs:
           context: ./server                     # Path to Dockerfile
           push: true                            # Push image after building to GitHub Container Registry (GHCR)
           tags: |
-            ghcr.io/${{ github.repository }}/server:latest
-            ghcr.io/${{ github.repository }}/server:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/lab-assets-app/server:latest
+            ghcr.io/${{ github.repository_owner }}/lab-assets-app/server:${{ github.ref_name }}
           # Tags with 'latest' and with the git tag (e.g., v1.2.3)
 
       # ---- Client image ----
@@ -45,6 +45,6 @@ jobs:
           build-args: |                         # Pass build-time variables to Docker
             VITE_API_URL=/api
           tags: |
-            ghcr.io/${{ github.repository }}/client:latest
-            ghcr.io/${{ github.repository }}/client:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/lab-assets-app/client:latest
+            ghcr.io/${{ github.repository_owner }}/lab-assets-app/client:${{ github.ref_name }}
           # Tags with 'latest' and with the git tag
