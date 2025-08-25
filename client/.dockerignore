@@ -27,3 +27,5 @@ Dockerfile
 tests
 **/*.test.*
 **/__tests__/**
+
+.github/

@@ -1,5 +1,5 @@
-# Use a lightweight Node.js 20 image from Alpine linux
-FROM node:20-alpine 
+# Use a lightweight Node.js image from Alpine linux
+FROM node:18-alpine 
 # Set working directory inside container
 WORKDIR /app
 # Copy only package files first (for layer caching)

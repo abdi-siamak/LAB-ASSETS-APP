@@ -1,6 +1,6 @@
 # Build stage:Uses Node.js to install dependencies, build the app into static files.
 # Use lightweight Node.js image from Alpine linux
-FROM node:20-alpine AS build
+FROM node:18-alpine AS build
 # Set working directory inside the container
 WORKDIR /app
 # Copy only package files first (for layer caching)
