@@ -82,9 +82,11 @@ lab-assets-app/
   .github/workflows/ci.yml  # tests + build
 ```
 
-## CI
+## CI/CD
 
 GitHub Actions runs: **lint → test (server) → build (client)** on push/PR to `main`. Coverage is uploaded as an artifact.
+
+**CD:** Pushing a tag `v*.*.*` triggers a workflow that builds & pushes Docker images for `server` and `client` to GitHub Container Registry (GHCR). Example: `git tag v1.0.0 && git push --tags`.
 
 ## License
 
