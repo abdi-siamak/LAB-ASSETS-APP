@@ -38,7 +38,7 @@ jobs:
       # ---- Server: install + test ----         
       - name: Install server deps                   # Moves to the server folder and installs dependencies using npm ci
         working-directory: server
-        run: npm ci
+        run: npm ci                                 # Installs dependencies using npm ci (faster and more deterministic than npm install)
 
       - name: Wait for MongoDB                      # Waits for MongoDB to be ready before running tests
         run: |
