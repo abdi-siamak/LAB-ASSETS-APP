@@ -36,7 +36,7 @@ jobs:
       - name: Show Node/npm versions
         run: node -v && npm -v
 
-      # Optional: keep npm quiet & deterministic-ish without locks
+      # Optional: keep npm quiet
       - name: Set npm config (quiet)
         run: |
           npm config set fund false
@@ -70,17 +70,34 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---------------- Client: install + build ----------------
-      - name: Build client (Vite)
+      # ---------------- Client: install → ensure Rollup native → build ----------------
+      - name: Install client deps                   # Ensure dev deps are installed
+        working-directory: client
+        run: npm install --no-audit --no-fund --include=dev
+
+      - name: Ensure Rollup native (match installed Rollup version)
         working-directory: client
         shell: bash
-        env:
-             VITE_API_URL: http://localhost:4000/api
         run: |
-          npm install --no-audit --no-fund
-          # sanity: show what was installed (optional)
-          npm ls rollup || true
-          ls -la node_modules/@rollup || true
-          node -e "console.log('rollup:', require.resolve('rollup')); console.log('native:', require.resolve('@rollup/rollup-linux-x64-gnu'))"
-          npm run build
+          set -euo pipefail
 
+          # Get the actual Rollup version that npm installed (direct or transitive via Vite)
+          ROLLUP_VERSION=$(node -p "require('rollup/package.json').version")
+          echo "Detected rollup version: ${ROLLUP_VERSION}"
+
+          # On GitHub's Ubuntu runner use the glibc package
+          PKG="@rollup/rollup-linux-x64-gnu@${ROLLUP_VERSION}"
+
+          # Install the native package only if it's missing
+          node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" \
+            && echo "Rollup native binary already present." \
+            || (echo "Installing ${PKG}..." && npm install -D "${PKG}")
+
+          # Sanity check (will throw if still missing)
+          node -e "console.log('Native binary path:', require.resolve('@rollup/rollup-linux-x64-gnu'))"
+
+      - name: Build client (Vite)
+        working-directory: client
+        env:
+          VITE_API_URL: http://localhost:4000/api
+        run: npm run build
