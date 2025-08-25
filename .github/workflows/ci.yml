@@ -3,16 +3,16 @@ name: CI                                           # Workflow name
 
 on:
   push:
-    branches: [ main ]                             # Trigger only on pushes to main
+    branches: [ main ]                             # Trigger on pushes to main
   pull_request:
-    branches: [ main ]                             # Trigger on PRs targeting main
+    branches: [ main ]                             # Trigger on PRs into main
 
 jobs:
   ci:
-    runs-on: ubuntu-latest                         # Use latest Ubuntu runner, a virtual machine
+    runs-on: ubuntu-latest                         # GitHub-hosted Ubuntu x64 (glibc)
 
     services:
-      mongodb:
+      mongodb:                                     # Spin up MongoDB for API tests
         image: mongo:7
         ports:
           - 27017:27017                            # Expose MongoDB to the job at 127.0.0.1:27017
@@ -24,26 +24,37 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4                  # Pulls your repo to the runner
+        uses: actions/checkout@v4                  # Pull repo contents
 
-      # ---- Node toolchain (no cache + no lockfile requirement) ----
+      # ---------------- Node toolchain ----------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22                         # Match previous runs that used Node 22
+          node-version: '22'                       # Match your laptop (Node 22)
+          # NOTE: no npm cache here because there are no lockfiles
 
-      # ---- Server: install + (optional) build + test ----
-      - name: Install server deps                   # Installs server dependencies (no lockfile)
+      - name: Show Node/npm versions
+        run: node -v && npm -v
+
+      # Optional: keep npm quiet & deterministic-ish without locks
+      - name: Set npm config (quiet)
+        run: |
+          npm config set fund false
+          npm config set audit false
+          npm config set progress false
+
+      # ---------------- Server: install → build → test ----------------
+      - name: Install server deps                   # No lockfile, so use npm install
         working-directory: server
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund --include=optional
 
-      - name: Build server (if applicable)          # Safe if your server has no build step
+      - name: Build server (if applicable)
         working-directory: server
         run: npm run build --if-present
 
-      - name: Wait for Mongo                        # Simple check to ensure DB is reachable
+      - name: Wait for Mongo                        # Simple readiness check
         run: |
-          echo "Waiting for Mongo..."
+          echo "Waiting for Mongo on 127.0.0.1:27017..."
           sudo apt-get update -y
           sudo apt-get install -y netcat-openbsd
           for i in {1..60}; do
@@ -59,13 +70,23 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---- Client: install + build ----
-      - name: Install client deps                   # Installs client dependencies (no lockfile)
+      # ---------------- Client: install → fix Rollup optional dep → build ----------------
+      - name: Install client deps                   # Include optional deps (Rollup native is optional)
         working-directory: client
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund --include=optional
+
+      # Work around npm occasionally skipping Rollup's native binary on Linux.
+      # If it's missing, explicitly install the platform package.
+      - name: Ensure Rollup native binary on Linux
+        if: runner.os == 'Linux'
+        working-directory: client
+        shell: bash
+        run: |
+          node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" \
+            || npm install -D @rollup/rollup-linux-x64-gnu
 
       - name: Build client (Vite)
         working-directory: client
         env:
-          VITE_API_URL: http://localhost:4000/api
+          VITE_API_URL: http://localhost:4000/api  # Adjust if your API URL differs in CI
         run: npm run build
