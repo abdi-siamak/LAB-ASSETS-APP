@@ -13,6 +13,7 @@ pnpm-lock.yaml
 .vscode
 .idea
 .DS_Store
+.github/
 
 # output / caches from local runs
 dist
@@ -28,4 +29,4 @@ tests
 **/*.test.*
 **/__tests__/**
 
-.github/
+dist

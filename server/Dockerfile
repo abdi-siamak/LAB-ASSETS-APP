@@ -1,16 +1,16 @@
 # Use a lightweight Node.js image
-FROM node:22-alpine
+FROM node:22-slim
 
 # App dir
 WORKDIR /app
 
-# Copy ONLY package.json so deps resolve inside Linux/musl
-COPY package.json ./
+# Copy dependency manifests
+COPY package*.json ./
 
-# Install runtime deps (no dev deps, no lockfile needed)
-RUN npm cache clean --force && npm install --omit=dev
+# Install only production deps
+RUN npm install --omit=dev
 
-# Copy the app code
+# Copy source
 COPY src ./src
 
 # Env + port
