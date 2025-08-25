@@ -26,6 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------------- Node toolchain ----------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -40,7 +41,7 @@ jobs:
           npm config set audit false
           npm config set progress false
 
-      # ---------- Server ----------
+      # ---------------- Server: install → build → test ----------------
       - name: Install server deps
         working-directory: server
         run: npm install --no-audit --no-fund
@@ -66,10 +67,36 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---------- Client ----------
-      - name: Install client deps (applies overrides → uses Rollup WASM)
+      # ---------------- Client: install → ensure Rollup native → build ----------------
+      - name: Install client deps
         working-directory: client
         run: npm install --no-audit --no-fund
+
+      - name: Ensure Rollup native (match installed Rollup version)
+        working-directory: client
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Find the Rollup version that Vite installed (directly or transitively).
+          ROLLUP_VERSION="$(node -p "try{require('rollup/package.json').version}catch(e){''}")"
+          if [ -z "$ROLLUP_VERSION" ]; then
+            echo "No rollup found yet; installing rollup@^4 to determine version..."
+            npm install -D rollup@^4
+            ROLLUP_VERSION="$(node -p "require('rollup/package.json').version")"
+          fi
+          echo "Detected rollup version: ${ROLLUP_VERSION}"
+
+          # For Ubuntu (glibc) runners use the linux-x64-gnu binary.
+          PKG="@rollup/rollup-linux-x64-gnu@${ROLLUP_VERSION}"
+
+          # Install if missing (npm sometimes skips optional deps on CI).
+          node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" \
+            && echo "Rollup native binary already present." \
+            || (echo "Installing ${PKG}..." && npm install -D "${PKG}")
+
+          # Sanity check: fail now if still missing.
+          node -e "console.log(require.resolve('@rollup/rollup-linux-x64-gnu'))"
 
       - name: Build client (Vite)
         working-directory: client
