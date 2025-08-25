@@ -70,24 +70,17 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---------------- Client: install + guarantee Rollup native + build ----------------
+      # ---------------- Client: install + build ----------------
       - name: Build client (Vite)
         working-directory: client
         shell: bash
         env:
-          VITE_API_URL: http://localhost:4000/api   # adjust if needed
+             VITE_API_URL: http://localhost:4000/api
         run: |
-          # Install deps (no lockfile). Ensure optional deps aren’t skipped.
-          npm config set optional true
           npm install --no-audit --no-fund
-
-          # Workaround npm optional-deps bug for Rollup on Linux:
-          # If the native binary package isn't installed, install it explicitly.
-          npm ls @rollup/rollup-linux-x64-gnu >/dev/null 2>&1 || npm i -D @rollup/rollup-linux-x64-gnu
-
-          # Sanity check (will throw if still missing)
-          node -e "console.log('Rollup native at:', require.resolve('@rollup/rollup-linux-x64-gnu'))"
-
-          # Now build
+          # sanity: show what was installed (optional)
+          npm ls rollup || true
+          ls -la node_modules/@rollup || true
+          node -e "console.log('rollup:', require.resolve('rollup')); console.log('native:', require.resolve('@rollup/rollup-linux-x64-gnu'))"
           npm run build
 
