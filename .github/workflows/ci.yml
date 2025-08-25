@@ -1,102 +1,65 @@
-# .github/workflows/ci.yml
-name: CI
+name: CI                                           # Workflow name
 
-on:
+on:  
   push:
-    branches: [ main ]
+    branches: [ main ]                             # Trigger only on pushes to main
   pull_request:
-    branches: [ main ]
+    branches: [ main ]                             # Trigger on PRs targeting main
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest                         # Use latest Ubuntu runner, a virtual machine
 
     services:
       mongodb:
         image: mongo:7
         ports:
           - 27017:27017
-        options: >-
-          --health-cmd="mongosh --host 127.0.0.1 --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval=10s
+      
+        options: >-                                # A health check to ensure MongoDB is ready before the job uses it
+          --health-cmd="mongosh --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=20
 
     steps:
-      - name: Checkout
+      - name: Checkout                              # Steps are individual actions in the job–Step to clone the repo
         uses: actions/checkout@v4
 
-      # ---------------- Node toolchain ----------------
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node                            # Node.js version
+        uses: actions/setup-node@v4                 # Cache npm dependencies
         with:
           node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            server/package-lock.json                # Caches dependencies to speed up future runs
+            client/package-lock.json                # Specifies files that, when changed, will invalidate the cache
 
-      - name: Show Node/npm versions
-        run: node -v && npm -v
-
-      - name: Quiet npm
-        run: |
-          npm config set fund false
-          npm config set audit false
-          npm config set progress false
-
-      # ---------------- Server: install → build → test ----------------
-      - name: Install server deps
+      # ---- Server: install + test ----         
+      - name: Install server deps                   # Moves to the server folder and installs dependencies using npm ci
         working-directory: server
-        run: npm install --no-audit --no-fund
+        run: npm ci                                 # Installs dependencies using npm ci (faster and more deterministic than npm install)
 
-      - name: Build server (if applicable)
-        working-directory: server
-        run: npm run build --if-present
-
-      - name: Wait for Mongo
+      - name: Wait for MongoDB                      # Waits for MongoDB to be ready before running tests
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y netcat-openbsd
-          for i in {1..60}; do
-            nc -z 127.0.0.1 27017 && exit 0
+          for i in {1..30}; do                      # Check if port 27017 is open–Loops up to 30 times, waiting 2 seconds each iteration
+            nc -z 127.0.0.1 27017 && echo "Mongo up" && exit 0
+            echo "Waiting for Mongo..."
             sleep 2
           done
-          exit 1
+          echo "Mongo failed to start" && exit 1
 
-      - name: Run server tests
+      - name: Test server (Jest + Supertest, real Mongo)    # Runs server tests and sets environment variables
         working-directory: server
         env:
           NODE_ENV: test
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---------------- Client: install → ensure Rollup native → build ----------------
-      - name: Install client deps
+      # ---- Client: install + build ----
+      - name: Install client deps                   # Installs client dependencies
         working-directory: client
-        run: npm install --no-audit --no-fund
-
-      - name: Ensure Rollup native (match installed Rollup version)
-        working-directory: client
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Find the Rollup version that Vite installed (directly or transitively).
-          ROLLUP_VERSION="$(node -p "try{require('rollup/package.json').version}catch(e){''}")"
-          if [ -z "$ROLLUP_VERSION" ]; then
-            echo "No rollup found yet; installing rollup@^4 to determine version..."
-            npm install -D rollup@^4
-            ROLLUP_VERSION="$(node -p "require('rollup/package.json').version")"
-          fi
-          echo "Detected rollup version: ${ROLLUP_VERSION}"
-
-          # For Ubuntu (glibc) runners use the linux-x64-gnu binary.
-          PKG="@rollup/rollup-linux-x64-gnu@${ROLLUP_VERSION}"
-
-          # Install if missing (npm sometimes skips optional deps on CI).
-          node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" \
-            && echo "Rollup native binary already present." \
-            || (echo "Installing ${PKG}..." && npm install -D "${PKG}")
-
-          # Sanity check: fail now if still missing.
-          node -e "console.log(require.resolve('@rollup/rollup-linux-x64-gnu'))"
+        run: npm ci
 
       - name: Build client (Vite)
         working-directory: client
