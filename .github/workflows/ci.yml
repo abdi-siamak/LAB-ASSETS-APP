@@ -59,7 +59,11 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---- Client: cache, install + build ----
+      # ---- Client: clean, cache, install + build ----
+
+      - name: Clean client node_modules              # Remove node_modules and lock file to fix Rollup native dependency issue
+        working-directory: client
+        run: rm -rf node_modules package-lock.json
 
       - name: Cache client npm                       # Cache client dependencies separately
         uses: actions/cache@v3
@@ -67,9 +71,9 @@ jobs:
           path: client/node_modules
           key: client-node-modules-${{ hashFiles('client/package-lock.json') }}
 
-      - name: Install client deps                   # Installs client dependencies
+      - name: Install client deps                   # Installs client dependencies fresh
         working-directory: client
-        run: npm ci
+        run: npm install
 
       - name: Build client (Vite)
         working-directory: client
