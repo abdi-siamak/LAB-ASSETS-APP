@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+      
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      # ---- Server: install + test ----
+      - name: Install server deps
+        working-directory: server
+        run: npm ci
+
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            nc -z 127.0.0.1 27017 && echo "Mongo up" && exit 0
+            echo "Waiting for Mongo..."
+            sleep 2
+          done
+          echo "Mongo failed to start" && exit 1
+
+      - name: Test server (Jest + Supertest, real Mongo)
+        working-directory: server
+        env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
+        run: npm test
+
+      # ---- Client: install + build ----
+      - name: Install client deps
+        working-directory: client
+        run: npm ci
+
+      - name: Build client (Vite)
+        working-directory: client
+        env:
+          VITE_API_URL: http://localhost:4000/api
+        run: npm run build
