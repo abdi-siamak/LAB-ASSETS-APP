@@ -1,6 +1,7 @@
+# .github/workflows/ci.yml
 name: CI                                           # Workflow name
 
-on:  
+on:
   push:
     branches: [ main ]                             # Trigger only on pushes to main
   pull_request:
@@ -14,42 +15,44 @@ jobs:
       mongodb:
         image: mongo:7
         ports:
-          - 27017:27017
-      
-        options: >-                                # A health check to ensure MongoDB is ready before the job uses it
-          --health-cmd="mongosh --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval=5s
+          - 27017:27017                            # Expose MongoDB to the job at 127.0.0.1:27017
+        options: >-                                # Health check so steps wait for Mongo to be ready
+          --health-cmd="mongosh --host 127.0.0.1 --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
           --health-timeout=5s
-          --health-retries=20
+          --health-retries=5
 
     steps:
-      - name: Checkout                              # Steps are individual actions in the job–Step to clone the repo
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4                  # Pulls your repo to the runner
 
-      - name: Setup Node                            # Node.js version
-        uses: actions/setup-node@v4                 # Cache npm dependencies
+      # ---- Node toolchain (no cache + no lockfile requirement) ----
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: |
-            server/package-lock.json                # Caches dependencies to speed up future runs
-            client/package-lock.json                # Specifies files that, when changed, will invalidate the cache
+          node-version: 22                         # Match previous runs that used Node 22
 
-      # ---- Server: install + test ----         
-      - name: Install server deps                   # Moves to the server folder and installs dependencies using npm ci
+      # ---- Server: install + (optional) build + test ----
+      - name: Install server deps                   # Installs server dependencies (no lockfile)
         working-directory: server
-        run: npm ci                                 # Installs dependencies using npm ci (faster and more deterministic than npm install)
+        run: npm install --no-audit --no-fund
 
-      - name: Wait for MongoDB                      # Waits for MongoDB to be ready before running tests
+      - name: Build server (if applicable)          # Safe if your server has no build step
+        working-directory: server
+        run: npm run build --if-present
+
+      - name: Wait for Mongo                        # Simple check to ensure DB is reachable
         run: |
-          for i in {1..30}; do                      # Check if port 27017 is open–Loops up to 30 times, waiting 2 seconds each iteration
-            nc -z 127.0.0.1 27017 && echo "Mongo up" && exit 0
-            echo "Waiting for Mongo..."
+          echo "Waiting for Mongo..."
+          sudo apt-get update -y
+          sudo apt-get install -y netcat-openbsd
+          for i in {1..60}; do
+            nc -z 127.0.0.1 27017 && echo "Mongo is up!" && exit 0
             sleep 2
           done
-          echo "Mongo failed to start" && exit 1
+          echo "Mongo did not become ready in time"; exit 1
 
-      - name: Test server (Jest + Supertest, real Mongo)    # Runs server tests and sets environment variables
+      - name: Run server tests
         working-directory: server
         env:
           NODE_ENV: test
@@ -57,9 +60,9 @@ jobs:
         run: npm test
 
       # ---- Client: install + build ----
-      - name: Install client deps                   # Installs client dependencies
+      - name: Install client deps                   # Installs client dependencies (no lockfile)
         working-directory: client
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Build client (Vite)
         working-directory: client
