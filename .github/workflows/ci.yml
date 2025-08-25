@@ -1,22 +1,22 @@
 # .github/workflows/ci.yml
-name: CI                                           # Workflow name
+name: CI
 
 on:
   push:
-    branches: [ main ]                             # Trigger on pushes to main
+    branches: [ main ]
   pull_request:
-    branches: [ main ]                             # Trigger on PRs into main
+    branches: [ main ]
 
 jobs:
   ci:
-    runs-on: ubuntu-latest                         # GitHub-hosted Ubuntu x64 (glibc)
+    runs-on: ubuntu-latest
 
     services:
-      mongodb:                                     # Spin up MongoDB for API tests
+      mongodb:
         image: mongo:7
         ports:
-          - 27017:27017                            # Expose MongoDB to the job at 127.0.0.1:27017
-        options: >-                                # Health check so steps wait for Mongo to be ready
+          - 27017:27017
+        options: >-
           --health-cmd="mongosh --host 127.0.0.1 --eval 'db.runCommand({ ping: 1 })'"
           --health-interval=10s
           --health-timeout=5s
@@ -24,44 +24,40 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4                  # Pull repo contents
+        uses: actions/checkout@v4
 
-      # ---------------- Node toolchain ----------------
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'                       # Match your laptop (Node 22)
-          # NOTE: no npm cache here because there are no lockfiles
+          node-version: '22'
 
       - name: Show Node/npm versions
         run: node -v && npm -v
 
-      # Optional: keep npm quiet
-      - name: Set npm config (quiet)
+      - name: Quiet npm
         run: |
           npm config set fund false
           npm config set audit false
           npm config set progress false
 
-      # ---------------- Server: install → build → test ----------------
-      - name: Install server deps                   # No lockfile, so use npm install
+      # ---------- Server ----------
+      - name: Install server deps
         working-directory: server
-        run: npm install --no-audit --no-fund --include=optional
+        run: npm install --no-audit --no-fund
 
       - name: Build server (if applicable)
         working-directory: server
         run: npm run build --if-present
 
-      - name: Wait for Mongo                        # Simple readiness check
+      - name: Wait for Mongo
         run: |
-          echo "Waiting for Mongo on 127.0.0.1:27017..."
           sudo apt-get update -y
           sudo apt-get install -y netcat-openbsd
           for i in {1..60}; do
-            nc -z 127.0.0.1 27017 && echo "Mongo is up!" && exit 0
+            nc -z 127.0.0.1 27017 && exit 0
             sleep 2
           done
-          echo "Mongo did not become ready in time"; exit 1
+          exit 1
 
       - name: Run server tests
         working-directory: server
@@ -70,31 +66,10 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---------------- Client: install → ensure Rollup native → build ----------------
-      - name: Install client deps                   # Ensure dev deps are installed
+      # ---------- Client ----------
+      - name: Install client deps (applies overrides → uses Rollup WASM)
         working-directory: client
-        run: npm install --no-audit --no-fund --include=dev
-
-      - name: Ensure Rollup native (match installed Rollup version)
-        working-directory: client
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Get the actual Rollup version that npm installed (direct or transitive via Vite)
-          ROLLUP_VERSION=$(node -p "require('rollup/package.json').version")
-          echo "Detected rollup version: ${ROLLUP_VERSION}"
-
-          # On GitHub's Ubuntu runner use the glibc package
-          PKG="@rollup/rollup-linux-x64-gnu@${ROLLUP_VERSION}"
-
-          # Install the native package only if it's missing
-          node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" \
-            && echo "Rollup native binary already present." \
-            || (echo "Installing ${PKG}..." && npm install -D "${PKG}")
-
-          # Sanity check (will throw if still missing)
-          node -e "console.log('Native binary path:', require.resolve('@rollup/rollup-linux-x64-gnu'))"
+        run: npm install --no-audit --no-fund
 
       - name: Build client (Vite)
         working-directory: client
