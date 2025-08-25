@@ -1,3 +1,4 @@
+# .github/workflows/release-images.yml
 name: Build & Push Docker Images                # Name of the workflow
 
 on:
@@ -14,20 +15,26 @@ jobs:                                           # Job named 'docker'
     steps:
       - uses: actions/checkout@v4               # Clone the repository
 
-      - name: Log in to GHCR                    # Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io                     # Target registry
-          username: ${{ github.actor }}         # GitHub username of the actor triggering workflow
+          registry: ghcr.io
+          username: ${{ github.actor }}         # GitHub actor
           password: ${{ secrets.GITHUB_TOKEN }} # GitHub token to authenticate
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Build & push server
         uses: docker/build-push-action@v6
         with:
           context: ./server                     # Folder containing Dockerfile for server
           push: true                            # Push the built image to the registry
-          tags: ghcr.io/${{ github.repository }}/server:latest,ghcr.io/${{ github.repository }}/server:${{ github.ref_name }}
+          tags: |
+            ghcr.io/${{ github.repository }}/server:latest
+            ghcr.io/${{ github.repository }}/server:${{ github.ref_name }}
           # Tags the image with 'latest' and also with the git tag (e.g., v1.2.3)
+
       - name: Build & push client
         uses: docker/build-push-action@v6
         with:
@@ -35,5 +42,7 @@ jobs:                                           # Job named 'docker'
           push: true                            # Push the built image to the registry
           build-args: |                         # Pass build arguments to Docker
             VITE_API_URL=/api                   # Environment variable for client build
-          tags: ghcr.io/${{ github.repository }}/client:latest,ghcr.io/${{ github.repository }}/client:${{ github.ref_name }}
+          tags: |
+            ghcr.io/${{ github.repository }}/client:latest
+            ghcr.io/${{ github.repository }}/client:${{ github.ref_name }}
           # Tags the image with 'latest' and also with the git tag
