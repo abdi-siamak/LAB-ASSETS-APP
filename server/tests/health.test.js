@@ -1,7 +1,7 @@
 import request from 'supertest';
 import mongoose from 'mongoose';
 import app from '../src/app.js';
-import connectDB from '../src/db.js';
+import { connectDB, disconnectDB } from '../src/db.js';
 
 beforeAll(async () => {
     const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/labassets_tes'

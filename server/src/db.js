@@ -1,9 +1,12 @@
 import mongoose from 'mongoose';
 
-async function connectDB(url){
+export async function connectDB(url){
     mongoose.set('strictQuery', true); //enforce strict filtering in queries
     await mongoose.connect(url);
     console.log('MongoDB connected');
 }
 
-export default connectDB;
+
+export async function disconnectDB() {
+  await mongoose.disconnect();
+}
