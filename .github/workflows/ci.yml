@@ -31,9 +31,6 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: |
-            server/package-lock.json                # Caches dependencies to speed up future runs
-            client/package-lock.json                # Specifies files that, when changed, will invalidate the cache
 
       # ---- Server: install + test ----         
       - name: Install server deps                   # Moves to the server folder and installs dependencies using npm ci
