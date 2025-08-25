@@ -1,14 +1,14 @@
-name: CI
+name: CI                                           # Workflow name
 
-on:
+on:  
   push:
-    branches: [ main ]
+    branches: [ main ]                             # Trigger only on pushes to main
   pull_request:
-    branches: [ main ]
+    branches: [ main ]                             # Trigger on PRs targeting main
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest                         # Use latest Ubuntu runner, a virtual machine
 
     services:
       mongodb:
@@ -16,40 +16,40 @@ jobs:
         ports:
           - 27017:27017
       
-        options: >-
+        options: >-                                # A health check to ensure MongoDB is ready before the job uses it
           --health-cmd="mongosh --eval 'db.adminCommand({ ping: 1 })'"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
 
     steps:
-      - name: Checkout
+      - name: Checkout                              # Steps are individual actions in the job–Step to clone the repo
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node                            # Node.js version
+        uses: actions/setup-node@v4                 # Cache npm dependencies
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: |
-            server/package-lock.json
-            client/package-lock.json
+            server/package-lock.json                # Caches dependencies to speed up future runs
+            client/package-lock.json                # Specifies files that, when changed, will invalidate the cache
 
-      # ---- Server: install + test ----
-      - name: Install server deps
+      # ---- Server: install + test ----         
+      - name: Install server deps                   # Moves to the server folder and installs dependencies using npm ci
         working-directory: server
         run: npm ci
 
-      - name: Wait for MongoDB
+      - name: Wait for MongoDB                      # Waits for MongoDB to be ready before running tests
         run: |
-          for i in {1..30}; do
+          for i in {1..30}; do                      # Check if port 27017 is open–Loops up to 30 times, waiting 2 seconds each iteration
             nc -z 127.0.0.1 27017 && echo "Mongo up" && exit 0
             echo "Waiting for Mongo..."
             sleep 2
           done
           echo "Mongo failed to start" && exit 1
 
-      - name: Test server (Jest + Supertest, real Mongo)
+      - name: Test server (Jest + Supertest, real Mongo)    # Runs server tests and sets environment variables
         working-directory: server
         env:
           NODE_ENV: test
@@ -57,7 +57,7 @@ jobs:
         run: npm test
 
       # ---- Client: install + build ----
-      - name: Install client deps
+      - name: Install client deps                   # Installs client dependencies
         working-directory: client
         run: npm ci
 
