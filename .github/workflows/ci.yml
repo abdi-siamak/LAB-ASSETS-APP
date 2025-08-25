@@ -70,23 +70,24 @@ jobs:
           MONGODB_URI: mongodb://127.0.0.1:27017/labassets_test
         run: npm test
 
-      # ---------------- Client: install → fix Rollup optional dep → build ----------------
-      - name: Install client deps                   # Include optional deps (Rollup native is optional)
-        working-directory: client
-        run: npm install --no-audit --no-fund --include=optional
-
-      # Work around npm occasionally skipping Rollup's native binary on Linux.
-      # If it's missing, explicitly install the platform package.
-      - name: Ensure Rollup native binary on Linux
-        if: runner.os == 'Linux'
-        working-directory: client
-        shell: bash
-        run: |
-          node -e "require.resolve('@rollup/rollup-linux-x64-gnu')" \
-            || npm install -D @rollup/rollup-linux-x64-gnu
-
+      # ---------------- Client: install + guarantee Rollup native + build ----------------
       - name: Build client (Vite)
         working-directory: client
+        shell: bash
         env:
-          VITE_API_URL: http://localhost:4000/api  # Adjust if your API URL differs in CI
-        run: npm run build
+          VITE_API_URL: http://localhost:4000/api   # adjust if needed
+        run: |
+          # Install deps (no lockfile). Ensure optional deps aren’t skipped.
+          npm config set optional true
+          npm install --no-audit --no-fund
+
+          # Workaround npm optional-deps bug for Rollup on Linux:
+          # If the native binary package isn't installed, install it explicitly.
+          npm ls @rollup/rollup-linux-x64-gnu >/dev/null 2>&1 || npm i -D @rollup/rollup-linux-x64-gnu
+
+          # Sanity check (will throw if still missing)
+          node -e "console.log('Rollup native at:', require.resolve('@rollup/rollup-linux-x64-gnu'))"
+
+          # Now build
+          npm run build
+
