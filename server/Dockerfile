@@ -1,17 +1,22 @@
-# Use a lightweight Node.js image from Alpine linux
-FROM node:18-alpine 
-# Set working directory inside container
+# Use a lightweight Node.js image
+FROM node:22-alpine
+
+# App dir
 WORKDIR /app
-# Copy only package files first (for layer caching)
-COPY package*.json ./
-# Install only production dependencies
-RUN npm ci --only=production
-# Copy application source code
+
+# Copy ONLY package.json so deps resolve inside Linux/musl
+COPY package.json ./
+
+# Install runtime deps (no dev deps, no lockfile needed)
+RUN npm cache clean --force && npm install --omit=dev
+
+# Copy the app code
 COPY src ./src
-# Set environment variables inside the container
+
+# Env + port
 ENV NODE_ENV=production
 ENV PORT=4000
-# Expose server port
 EXPOSE 4000
-# Run the server
+
+# Start
 CMD ["node", "src/index.js"]
