@@ -29,7 +29,7 @@ jobs:
       - name: Setup Node                            # Node.js version
         uses: actions/setup-node@v4                 # Cache npm dependencies
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: |
             server/package-lock.json                # Caches dependencies to speed up future runs
